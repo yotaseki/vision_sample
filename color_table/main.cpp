@@ -20,7 +20,6 @@ enum Col_def_T {
 int main(int argc ,char** argv){
     std::string fn = argv[1]; // image name
     cv::Mat src = cv::imread(fn);
-    cv::cvtColor(src,src,CV_BGR2YCrCb);
     cv::Mat labelimage;
     make_labelimage(src,labelimage);
     cv::Mat dst;
@@ -32,11 +31,13 @@ int main(int argc ,char** argv){
 
 void make_labelimage(cv::Mat &src, cv::Mat &dst)
 {
-  ColorTable color_table;
-  color_table.loadColorTable(std::string("color_table.cnf"));
-  cv::Mat labeling_image(src.rows, src.cols, CV_16UC1);
-  color_table.apply(src, labeling_image);
-  dst = labeling_image;
+    cv::Mat src_ycrcb;
+    cv::cvtColor(src,src_ycrcb,CV_BGR2YCrCb);
+    ColorTable color_table;
+    color_table.loadColorTable(std::string("color_table.cnf"));
+    cv::Mat labeling_image(src_ycrcb.rows, src_ycrcb.cols, CV_16UC1);
+    color_table.apply(src_ycrcb, labeling_image);
+    dst = labeling_image;
 }
 
 void separate_labelimage(int colorflag, cv::Mat &labelimage, cv::Mat &dst)
