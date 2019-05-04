@@ -8,6 +8,7 @@ namespace fs = std::experimental::filesystem;
 
 void detectBall(DetectorYOLO &dyolo, cv::Mat &src, struct BoundingBox &ball_v);
 void cropBall(cv::Mat &src, cv::Mat &dst, struct BoundingBox &bbox);
+void drawRect(cv::Mat &src, cv::Mat &dst, struct BoundingBox &bbox);
 void make_labelimage(cv::Mat &src, cv::Mat &dst, std::string color_table_path);
 void separate_labelimage(int colorflag, cv::Mat &labelimage, cv::Mat &dst);
 
@@ -44,11 +45,16 @@ int main(int argc, char** argv){
 
             std::string write_name=output_dir.string() + "/" + i.path().filename().string();
             cv::imwrite(write_name,c_ball);
+
+            /* visualize
+            cv::Mat img_draw;
+            drawRect(img, img_draw, ball_v);
+            cv::imshow("yolo",img_draw);
             cv::imshow("cut",c_ball);
-            cv::imshow("src",img);
             cv::imshow("label",label);
             cv::waitKey(0);
             cv::destroyAllWindows();
+            */
         }
     }
     
@@ -74,6 +80,16 @@ void cropBall(cv::Mat &src, cv::Mat &dst, struct BoundingBox &bbox){
     int H   = bbox.h * src.rows;
     cv::Mat img_cut(src,cv::Rect(X-W/2, Y-H/2,W,H));
     dst = img_cut;
+}
+
+void drawRect(cv::Mat &src, cv::Mat &dst, struct BoundingBox &bbox){
+    int X   = bbox.x * src.cols;
+    int Y   = bbox.y * src.rows;
+    int W   = bbox.w * src.cols;
+    int H   = bbox.h * src.rows;
+    cv::Mat img_draw = src.clone();
+    cv::rectangle(img_draw,cv::Point(X-W/2, Y-H/2),cv::Point(X-W/2+W,Y-H/2+H),cv::Scalar(0,0,255),4);
+    dst = img_draw;
 }
 
 void make_labelimage(cv::Mat &src, cv::Mat &dst, std::string color_table_path){
