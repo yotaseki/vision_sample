@@ -1,4 +1,4 @@
-project(CropBall)
+project(HoughCircle)
 
 # enable_language(CXX)
 # set(CMAKE_CXX_STANDARD 17)
@@ -19,7 +19,7 @@ link_directories(
     ${DARKNET_DIR}
 )
 
-add_executable(CropBall
+add_executable(HoughCircle
     main.cpp
     ${ROBOCUP_SRC_DIR}/vision/detector/detector_yolo.cpp
     ${ROBOCUP_SRC_DIR}/vision/detector/detector_yolo.h
@@ -31,9 +31,11 @@ add_executable(CropBall
     ${ROBOCUP_SRC_DIR}/vision/detector/detector_tool.h
     ${ROBOCUP_SRC_DIR}/vision/detector/convert_color.cpp
     ${ROBOCUP_SRC_DIR}/vision/detector/convert_color.h
+    ${ROBOCUP_SRC_DIR}/vision/detector/hough.cpp
+    ${ROBOCUP_SRC_DIR}/vision/detector/hough.h
 )
 
-target_link_libraries(CropBall
+target_link_libraries(HoughCircle
 	stdc++fs
     darknet
     ${OpenCV_LIBS}
