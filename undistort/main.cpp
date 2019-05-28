@@ -65,15 +65,16 @@ int main(int argc, char **argv){
         else if(key == 'c'){
             cv::Mat camMat, dist, rvecs, tvecs;
             cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.cols,frame.rows), camMat, dist, rvecs, tvecs);
-            std::cout << "fx:"<< camMat.at<double>(0,0) << std::endl;
-            std::cout << "fy:"<< camMat.at<double>(1,1) << std::endl;
-            std::cout << "cx:"<< camMat.at<double>(0,2) << std::endl;
-            std::cout << "cy:"<< camMat.at<double>(1,2) << std::endl;
-            std::cout << "k1:"<< dist.at<double>(0,0) << std::endl;
-            std::cout << "k2:"<< dist.at<double>(0,1) << std::endl;
-            std::cout << "p1:"<< dist.at<double>(0,2) << std::endl;
-            std::cout << "p2:"<< dist.at<double>(0,3) << std::endl;
-            std::cout << "k3:"<< dist.at<double>(0,4) << std::endl;
+            int r = 100000;
+            std::cout << "fx:"<< std::round(camMat.at<double>(0,0)*r/frame.cols)/r << std::endl;
+            std::cout << "fy:"<< std::round(camMat.at<double>(1,1)*r/frame.rows)/r << std::endl;
+            std::cout << "cx:"<< std::round(camMat.at<double>(0,2)*r/frame.cols)/r << std::endl;
+            std::cout << "cy:"<< std::round(camMat.at<double>(1,2)*r/frame.cols)/r << std::endl;
+            std::cout << "k1:"<< std::round(dist.at<double>(0,0)*r)/r << std::endl;
+            std::cout << "k2:"<< std::round(dist.at<double>(0,1)*r)/r << std::endl;
+            std::cout << "k3:"<< std::round(dist.at<double>(0,4)*r)/r << std::endl;
+            std::cout << "p1:"<< std::round(dist.at<double>(0,2)*r)/r << std::endl;
+            std::cout << "p2:"<< std::round(dist.at<double>(0,3)*r)/r << std::endl;
             cameraMatrix = camMat.clone();
             distCoeffs = dist.clone();
             undistort_flag = 1;
