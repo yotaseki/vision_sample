@@ -16,7 +16,10 @@ int main(int argc, char **argv){
     scanf("%d",&board_row);
     printf("Input size of pattern:");
     scanf("%d",&board_size);
-    int capture_device = atoi(argv[1]);
+    int capture_device = 0;
+    if(argc == 2){
+        capture_device = atoi(argv[1]);
+    }
     cv::VideoCapture cam;
     if(capture_device >= 0){
         cam.open(capture_device);
