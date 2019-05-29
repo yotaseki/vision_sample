@@ -39,6 +39,8 @@ int main(int argc, char **argv){
     cv::Mat distCoeffs;
     int num=0;
     int undistort_flag = 0;
+    std::vector<cv::Point3f> obj_p;
+    get_chess_points3f(obj_p, board_col-1, board_row-1, board_size);
     while(cam.read(frame)){
         std::vector<cv::Point2f> corners;
         cv::Mat img = frame.clone();
@@ -46,6 +48,18 @@ int main(int argc, char **argv){
             detect_board(img,cv::Size(board_col-1, board_row-1),corners,1 );
         }
         else{
+            /* solvepnp */
+            if(corners.size() == obj_p.size()){
+                cv::Mat rvec, tvec;
+                cv::solvePnP(obj_p, corners, cameraMatrix, distCoeffs,rvec, tvec);
+                /* drawing */
+                std::vector<cv::Point2f> imgPts;
+                cv::projectPoints(obj_p, rvec, tvec, cameraMatrix, distCoeffs, imgPts);
+                cv::line(img,corners[0],imgPts[0],(255,0,0), 5);
+                cv::line(img,corners[0],imgPts[1],(255,0,0), 5);
+                cv::line(img,corners[0],imgPts[2],(255,0,0), 5);
+            }
+            /* undistort */
             cv::Mat img_und;
             cv::undistort(img,img_und,cameraMatrix,distCoeffs);
             cv::imshow("undistort",img_und);
@@ -56,31 +70,33 @@ int main(int argc, char **argv){
             break;
         }
         else if(key == 'a'){
-            cv::Mat m = frame.clone();
-            caps.push_back(m);
-            std::vector<cv::Point3f> obj_p;
-            get_chess_points3f(obj_p, board_col-1, board_row-1, board_size);
-            imgPoints.push_back(corners);
-            objPoints.push_back(obj_p);
-            num++;
-            std::cout << "num:" << num <<std::endl;
+            if(corners.size() == obj_p.size()){
+                cv::Mat m = frame.clone();
+                caps.push_back(m);
+                imgPoints.push_back(corners);
+                objPoints.push_back(obj_p);
+                num++;
+                std::cout << "num:" << num <<std::endl;
+            }
         }
         else if(key == 'c'){
-            cv::Mat camMat, dist, rvecs, tvecs;
-            cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.cols,frame.rows), camMat, dist, rvecs, tvecs);
-            int r = 100000;
-            std::cout << "fx:"<< std::round(camMat.at<double>(0,0)*r/frame.cols)/r << std::endl;
-            std::cout << "fy:"<< std::round(camMat.at<double>(1,1)*r/frame.rows)/r << std::endl;
-            std::cout << "cx:"<< std::round(camMat.at<double>(0,2)*r/frame.cols)/r << std::endl;
-            std::cout << "cy:"<< std::round(camMat.at<double>(1,2)*r/frame.cols)/r << std::endl;
-            std::cout << "k1:"<< std::round(dist.at<double>(0,0)*r)/r << std::endl;
-            std::cout << "k2:"<< std::round(dist.at<double>(0,1)*r)/r << std::endl;
-            std::cout << "k3:"<< std::round(dist.at<double>(0,4)*r)/r << std::endl;
-            std::cout << "p1:"<< std::round(dist.at<double>(0,2)*r)/r << std::endl;
-            std::cout << "p2:"<< std::round(dist.at<double>(0,3)*r)/r << std::endl;
-            cameraMatrix = camMat.clone();
-            distCoeffs = dist.clone();
-            undistort_flag = 1;
+            if(num > 0){
+                cv::Mat camMat, dist, rvecs, tvecs;
+                cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.cols,frame.rows), camMat, dist, rvecs, tvecs);
+                int r = 100000;
+                std::cout << "fx:"<< std::round(camMat.at<double>(0,0)*r/frame.cols)/r << std::endl;
+                std::cout << "fy:"<< std::round(camMat.at<double>(1,1)*r/frame.rows)/r << std::endl;
+                std::cout << "cx:"<< std::round(camMat.at<double>(0,2)*r/frame.cols)/r << std::endl;
+                std::cout << "cy:"<< std::round(camMat.at<double>(1,2)*r/frame.cols)/r << std::endl;
+                std::cout << "k1:"<< std::round(dist.at<double>(0,0)*r)/r << std::endl;
+                std::cout << "k2:"<< std::round(dist.at<double>(0,1)*r)/r << std::endl;
+                std::cout << "k3:"<< std::round(dist.at<double>(0,4)*r)/r << std::endl;
+                std::cout << "p1:"<< std::round(dist.at<double>(0,2)*r)/r << std::endl;
+                std::cout << "p2:"<< std::round(dist.at<double>(0,3)*r)/r << std::endl;
+                cameraMatrix = camMat.clone();
+                distCoeffs = dist.clone();
+                undistort_flag = 1;
+            }
         }
     }
     for(int i=0;i<caps.size();i++){
