@@ -65,7 +65,7 @@ int main(int argc, char **argv){
             cv::imshow("undistort",img_und);
         }
         cv::imshow("cam",img);
-        const int key=cv::waitKey(1);
+        const int key=cv::waitKey(1) & 0xff;
         if(key == 'q'){
             break;
         }
