@@ -147,8 +147,7 @@ void getCameraRT(cv::Mat &rvec, cv::Mat &tvec, cv::Mat &RT){
     cv::Rodrigues(rvec,Rotate);
     Rotate.copyTo(camera_rt(cv::Rect(0,0,3,3)));
     tvec.copyTo(camera_rt(cv::Rect(3,0,1,3)));
-    std::cout << camera_rt << std::endl;
-    RT = camera_rt;
+    RT = camera_rt.clone();
 }
 
 void undistort_point(int xi, int yi, int width, int height,cv::Mat &cameraMatrix, cv::Mat &distCoeffs, int *rx, int *ry){
