@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <opencv2/opencv.hpp>
 
@@ -130,6 +131,17 @@ int main(int argc, char **argv){
                 cameraMatrix = camMat.clone();
                 distCoeffs = dist.clone();
                 undistort_flag = 1;
+                std::ofstream ofs("camera_param.txt");
+                ofs << "fx:"<< std::round(camMat.at<double>(0,0)*r/frame.cols)/r << std::endl;
+                ofs << "fy:"<< std::round(camMat.at<double>(1,1)*r/frame.rows)/r << std::endl;
+                ofs << "cx:"<< std::round(camMat.at<double>(0,2)*r/frame.cols)/r << std::endl;
+                ofs << "cy:"<< std::round(camMat.at<double>(1,2)*r/frame.cols)/r << std::endl;
+                ofs << "k0:"<< std::round(dist.at<double>(0,0)*r)/r << std::endl;
+                ofs << "k1:"<< std::round(dist.at<double>(0,1)*r)/r << std::endl;
+                ofs << "k2:"<< std::round(dist.at<double>(0,4)*r)/r << std::endl;
+                ofs << "k3:"<< std::round(dist.at<double>(0,5)*r)/r << std::endl;
+                ofs << "p1:"<< std::round(dist.at<double>(0,2)*r)/r << std::endl;
+                ofs << "p2:"<< std::round(dist.at<double>(0,3)*r)/r << std::endl;
             }
         }
     }
