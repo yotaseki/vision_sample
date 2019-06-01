@@ -3,6 +3,7 @@
 #include <fstream>
 #include <vector>
 #include <opencv2/opencv.hpp>
+#include "undistort.h"
 
 void getCameraRT(cv::Mat &rvec, cv::Mat &tvec, cv::Mat &RT);
 void undistort_point(int x, int y, int width, int height, cv::Mat &cameraMatrix, cv::Mat &distCoeffs, int *rx, int *ry);
@@ -19,61 +20,49 @@ int main(int argc, char **argv){
     scanf("%d",&board_row);
     printf("Input size of pattern:");
     scanf("%d",&board_size);
+    Undistort::board_T chessboard = {board_col,board_row,board_size};
     int capture_device = 0;
-    if(argc == 2){
-        capture_device = atoi(argv[1]);
-    }
     cv::VideoCapture cam;
+    if(argc == 2) capture_device = atoi(argv[1]);
     if(capture_device >= 0){
         //cam.set(CV_CAP_PROP_FPS, 30);
+        cam.open(capture_device);
         cam.set(CV_CAP_PROP_FRAME_WIDTH, 1280);
         cam.set(CV_CAP_PROP_FRAME_HEIGHT, 1024);
-        cam.open(capture_device);
-    }
-    else{
+    }else{
         cam.open(0);
     }
     if(!cam.isOpened()){
         printf("device cannot open.");
         return -1;
     }
+    Undistort ud;
     std::vector<cv::Mat> caps;
-    std::vector<std::vector<cv::Point2f> >  imgPoints;
-    std::vector<std::vector<cv::Point3f> >  objPoints;
     cv::Mat frame;
-    cv::Mat cameraMatrix;
-    cv::Mat distCoeffs;
     int num=0;
     int undistort_flag = 0;
-    std::vector<cv::Point3f> obj_p;
-    get_chess_points3f(obj_p, board_col-1, board_row-1, board_size);
     while(cam.read(frame)){
-        std::vector<cv::Point2f> corners;
         cv::Mat img = frame.clone();
+        std::vector<cv::Point2f> corners;
         if(undistort_flag == 1){
             /* undistort */
             cv::Mat img_und;
-            cv::undistort(frame,img_und,cameraMatrix,distCoeffs);
+            ud.undistortImage(frame,img_und);
             /* solvepnp */
-            detect_board(img,cv::Size(board_col-1, board_row-1),corners,1);
-            if(corners.size() == obj_p.size()){
-                cv::Mat rvec, tvec;
-                cv::solvePnP(obj_p, corners, cameraMatrix, distCoeffs,rvec, tvec);
-                if(true){
-                    std::cout << " ----- " << std::endl;
-                    cv::Mat RT;
-                    getCameraRT(rvec,tvec,RT);
-                    std::cout << RT << std::endl;
-                }
+            cv::Mat cameraRT;
+            int ret = ud.solvePnP(frame,chessboard,cameraRT);
+            if(ret == 0){
+                std::cout << " ----- " << std::endl;
+                std::cout << cameraRT << std::endl;
                 /* drawing */
                 int l = 4 * board_size;
-                std::vector<cv::Point3f> axis = {cv::Point3f(l,0,0),cv::Point3f(0,l,0),cv::Point3f(0,0,-l)};
+                std::vector<cv::Point3f> axis = {cv::Point3f(0,0,0),cv::Point3f(l,0,0),cv::Point3f(0,l,0),cv::Point3f(0,0,-l)};
                 std::vector<cv::Point2f> imgPts;
-                cv::projectPoints(axis, rvec, tvec, cameraMatrix, distCoeffs, imgPts);
-                if(imgPts.size() == 3){
-                    cv::line(img,corners[0],imgPts[0],cv::Scalar(255,0,0), 5);
-                    cv::line(img,corners[0],imgPts[1],cv::Scalar(0,255,0), 5);
-                    cv::line(img,corners[0],imgPts[2],cv::Scalar(0,0,255), 5);
+                ud.projectPoints(axis, cameraRT, img.cols, img.rows, imgPts);
+                if(imgPts.size() == 4){
+                    cv::line(img,imgPts[0],imgPts[1],cv::Scalar(255,0,0), 5); // x: red
+                    cv::line(img,imgPts[0],imgPts[2],cv::Scalar(0,255,0), 5); // y: green
+                    cv::line(img,imgPts[0],imgPts[3],cv::Scalar(0,0,255), 5); // -z: blue
                 }
             }
             /* undistort_points */
@@ -82,19 +71,23 @@ int main(int argc, char **argv){
                     float color_col = float(cx) / img.cols;
                     float color_row = float(cy) / img.rows;
                     cv::circle(img,cv::Point2d(cx,cy),2,cv::Scalar(0,255*color_row,255*color_col),-1);
-                    int rx, ry;
-                    undistort_point(cx,cy,img.cols,img.rows,cameraMatrix,distCoeffs,&rx,&ry );
+                    float rx, ry;
+                    ud.undistortPoints(cx,cy,img.cols,img.rows,&rx,&ry );
+                    rx = rx * img.cols;
+                    ry = ry * img.cols;
                     cv::circle(img_und,cv::Point2d(rx,ry),2,cv::Scalar(0,255*color_row,255*color_col),-1);
                 }
             }
             cv::imshow("undistort",img_und);
             /* Remap */
+            /*
             cv::Mat newCameraMat = cv::getOptimalNewCameraMatrix(cameraMatrix,distCoeffs,img.size(),1);
             cv::Mat map1, map2, R;
             cv::initUndistortRectifyMap(cameraMatrix,distCoeffs,R,newCameraMat,img.size(),CV_32FC1,map1,map2);
             cv::Mat img_remap;
             cv::remap(frame,img_remap,map1,map2,cv::INTER_NEAREST);
             cv::imshow("remap",img_remap);
+            */
         }
         else{
             detect_board(img,cv::Size(board_col-1, board_row-1),corners,1 );
@@ -105,44 +98,18 @@ int main(int argc, char **argv){
             break;
         }
         else if(key == 'a'){
-            if(corners.size() == obj_p.size()){
+            if(corners.size() == ((chessboard.cols-1)*(chessboard.rows-1))){
                 cv::Mat m = frame.clone();
                 caps.push_back(m);
-                imgPoints.push_back(corners);
-                objPoints.push_back(obj_p);
                 num++;
                 std::cout << "num:" << num <<std::endl;
             }
         }
         else if(key == 'c'){
             if(num > 0){
-                cv::Mat camMat, dist, rvecs, tvecs;
-                cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.cols,frame.rows), camMat, dist, rvecs, tvecs);
-                int r = 100000;
-                std::cout << "fx:"<< std::round(camMat.at<double>(0,0)*r/frame.cols)/r << std::endl;
-                std::cout << "fy:"<< std::round(camMat.at<double>(1,1)*r/frame.rows)/r << std::endl;
-                std::cout << "cx:"<< std::round(camMat.at<double>(0,2)*r/frame.cols)/r << std::endl;
-                std::cout << "cy:"<< std::round(camMat.at<double>(1,2)*r/frame.cols)/r << std::endl;
-                std::cout << "k0:"<< std::round(dist.at<double>(0,0)*r)/r << std::endl;
-                std::cout << "k1:"<< std::round(dist.at<double>(0,1)*r)/r << std::endl;
-                std::cout << "k2:"<< std::round(dist.at<double>(0,4)*r)/r << std::endl;
-                std::cout << "k3:"<< std::round(dist.at<double>(0,5)*r)/r << std::endl;
-                std::cout << "p1:"<< std::round(dist.at<double>(0,2)*r)/r << std::endl;
-                std::cout << "p2:"<< std::round(dist.at<double>(0,3)*r)/r << std::endl;
-                cameraMatrix = camMat.clone();
-                distCoeffs = dist.clone();
+                ud.calibrateCamera(caps, chessboard);
+                ud.writeCameraParams("camera_parameter.txt");
                 undistort_flag = 1;
-                std::ofstream ofs("camera_param.txt");
-                ofs << "fx:"<< std::round(camMat.at<double>(0,0)*r/frame.cols)/r << std::endl;
-                ofs << "fy:"<< std::round(camMat.at<double>(1,1)*r/frame.rows)/r << std::endl;
-                ofs << "cx:"<< std::round(camMat.at<double>(0,2)*r/frame.cols)/r << std::endl;
-                ofs << "cy:"<< std::round(camMat.at<double>(1,2)*r/frame.cols)/r << std::endl;
-                ofs << "k0:"<< std::round(dist.at<double>(0,0)*r)/r << std::endl;
-                ofs << "k1:"<< std::round(dist.at<double>(0,1)*r)/r << std::endl;
-                ofs << "k2:"<< std::round(dist.at<double>(0,4)*r)/r << std::endl;
-                ofs << "k3:"<< std::round(dist.at<double>(0,5)*r)/r << std::endl;
-                ofs << "p1:"<< std::round(dist.at<double>(0,2)*r)/r << std::endl;
-                ofs << "p2:"<< std::round(dist.at<double>(0,3)*r)/r << std::endl;
             }
         }
     }
