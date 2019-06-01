@@ -25,6 +25,9 @@ int main(int argc, char **argv){
     }
     cv::VideoCapture cam;
     if(capture_device >= 0){
+        //cam.set(CV_CAP_PROP_FPS, 30);
+        cam.set(CV_CAP_PROP_FRAME_WIDTH, 1280);
+        cam.set(CV_CAP_PROP_FRAME_HEIGHT, 1024);
         cam.open(capture_device);
     }
     else{
@@ -86,14 +89,12 @@ int main(int argc, char **argv){
             }
             cv::imshow("undistort",img_und);
             /* Remap */
-            /*
             cv::Mat newCameraMat = cv::getOptimalNewCameraMatrix(cameraMatrix,distCoeffs,img.size(),1);
             cv::Mat map1, map2, R;
             cv::initUndistortRectifyMap(cameraMatrix,distCoeffs,R,newCameraMat,img.size(),CV_32FC1,map1,map2);
             cv::Mat img_remap;
             cv::remap(frame,img_remap,map1,map2,cv::INTER_NEAREST);
             cv::imshow("remap",img_remap);
-            */
         }
         else{
             detect_board(img,cv::Size(board_col-1, board_row-1),corners,1 );
