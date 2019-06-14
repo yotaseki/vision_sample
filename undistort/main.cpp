@@ -39,8 +39,8 @@ int main(int argc, char **argv){
     cv::Mat frame;
     int num=0;
     int undistort_flag = 0;
-    if(int(argc) >= 2){
-        for(int i=2;i<int(argc);i+=5){
+    if(int(argc) >= 3){
+        for(int i=2;i<int(argc);i++){
             cv::Mat m = cv::imread(argv[i]);
             caps.push_back(m);
             num++;
@@ -75,58 +75,61 @@ int main(int argc, char **argv){
                 /* drawing */
                 int l = 4 * board_size;
                 std::vector<cv::Point3f> points;
-                for(int px=-5000;px<5000;px+=200 ){
-                    for(int py=-5000;py<300;py+=200 ){
+                int range_x = 8000; // mm
+                int range_y = 5000;
+                int stride = 200;
+                for(int px=-range_x;px<range_x;px+= stride){
+                    for(int py=-range_y;py<300;py+= stride ){
                         cv::Point3f p_3f(px,py,0);
                         points.push_back(p_3f);
                     }
                 }
-                std::vector<cv::Point3f> axis = {cv::Point3f(0,0,0),cv::Point3f(l,0,0),cv::Point3f(0,l,0),cv::Point3f(0,0,-l)};
                 std::vector<cv::Point2f> imgPts;
-                double data[] = {0.9995731, -0.0290507, 0.0030908, 3.6734881
-                                , 0.0093740, 0.41913, 0.90787, 266.31446
-                                ,-0.027669, -0.907459, 0.419227, 588.25439
-                                ,0,0,0,1};
-                cv::Mat m_camera(4,4,CV_64FC1,data);
-                ud.projectPoints(points, m_camera, img.cols, img.rows, imgPts);
+                /*  manual input
+                    double data[] = {0.9995731, -0.0290507, 0.0030908, 3.6734881
+                    , 0.0093740, 0.41913, 0.90787, 266.31446
+                    ,-0.027669, -0.907459, 0.419227, 588.25439
+                    ,0,0,0,1};
+                    cv::Mat m_camera(4,4,CV_64FC1,data);
+                    */
+                ud.projectPoints(points, cameraRT, img.cols, img.rows, imgPts);
                 for(int i=0; i<imgPts.size(); i++){
                     cv::circle(img,imgPts[i],5,cv::Scalar(0,0,255),-1);
                 }
-                /*
-                if(imgPts.size() == 4){
-                    cv::line(img,imgPts[0],imgPts[1],cv::Scalar(255,0,0), 5); // x: red
-                    cv::line(img,imgPts[0],imgPts[2],cv::Scalar(0,255,0), 5); // y: green
-                    cv::line(img,imgPts[0],imgPts[3],cv::Scalar(0,0,255), 5); // -z: blue
+                std::vector<cv::Point3f> axis = {cv::Point3f(0,0,0),cv::Point3f(l,0,0),cv::Point3f(0,l,0),cv::Point3f(0,0,-l)};
+                std::vector<cv::Point2f> axisPts;
+                ud.projectPoints(axis, cameraRT, img.cols, img.rows, axisPts);
+                if(axisPts.size() >= 4){
+                    cv::line(img,axisPts[0],axisPts[1],cv::Scalar(255,0,0), 5); // x: red
+                    cv::line(img,axisPts[0],axisPts[2],cv::Scalar(0,255,0), 5); // y: green
+                    cv::line(img,axisPts[0],axisPts[3],cv::Scalar(0,0,255), 5); // z: blue
                 }
-                */
             }
             /* undistort_points */
             /*
-            for(int cx=50; cx<img.cols-50; cx+=50){
-                for(int cy=50; cy<img.rows-50; cy+=50){
-                    float color_col = float(cx) / img.cols;
-                    float color_row = float(cy) / img.rows;
-                    cv::circle(img,cv::Point2d(cx,cy),2,cv::Scalar(0,255*color_row,255*color_col),-1);
-                    float rx, ry;
-                    ud.undistortPoints(cx,cy,img.cols,img.rows,&rx,&ry );
-                    cv::circle(img_und,cv::Point2d(rx,ry),2,cv::Scalar(0,255*color_row,255*color_col),-1);
-                }
-            }
-            */
+               for(int cx=50; cx<img.cols-50; cx+=50){
+               for(int cy=50; cy<img.rows-50; cy+=50){
+               float color_col = float(cx) / img.cols;
+               float color_row = float(cy) / img.rows;
+               cv::circle(img,cv::Point2d(cx,cy),2,cv::Scalar(0,255*color_row,255*color_col),-1);
+               float rx, ry;
+               ud.undistortPoints(cx,cy,img.cols,img.rows,&rx,&ry );
+               cv::circle(img_und,cv::Point2d(rx,ry),2,cv::Scalar(0,255*color_row,255*color_col),-1);
+               }
+               }
+               */
             cv::imshow("undistort",img_und);
             /* Remap */
             /*
-            cv::Mat newCameraMat = cv::getOptimalNewCameraMatrix(cameraMatrix,distCoeffs,img.size(),1);
-            cv::Mat map1, map2, R;
-            cv::initUndistortRectifyMap(cameraMatrix,distCoeffs,R,newCameraMat,img.size(),CV_32FC1,map1,map2);
-            cv::Mat img_remap;
-            cv::remap(frame,img_remap,map1,map2,cv::INTER_NEAREST);
-            cv::imshow("remap",img_remap);
-            */
+               cv::Mat newCameraMat = cv::getOptimalNewCameraMatrix(cameraMatrix,distCoeffs,img.size(),1);
+               cv::Mat map1, map2, R;
+               cv::initUndistortRectifyMap(cameraMatrix,distCoeffs,R,newCameraMat,img.size(),CV_32FC1,map1,map2);
+               cv::Mat img_remap;
+               cv::remap(frame,img_remap,map1,map2,cv::INTER_NEAREST);
+               cv::imshow("remap",img_remap);
+               */
         }
-        else{
-            detect_board(img,cv::Size(board_col-1, board_row-1),corners,1 );
-        }
+        detect_board(img,cv::Size(board_col-1, board_row-1),corners,1 );
         cv::imshow("cam",img);
         const int key=cv::waitKey(1) & 0xff;
         if(key == 'q'){
