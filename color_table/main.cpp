@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <opencv2/opencv.hpp>
 #include "detector/color_table.h"
 
@@ -18,15 +19,25 @@ enum Col_def_T {
 };
 
 int main(int argc ,char** argv){
-    std::string fn = argv[1]; // image name
-    cv::Mat src = cv::imread(fn);
-    cv::Mat labelimage;
-    make_labelimage(src,labelimage);
-    cv::Mat dst;
-    separate_labelimage(COLOR_GREEN,labelimage,dst);
-    cv::imshow("result",dst);
-    cv::waitKey(0);
-    cv::destroyAllWindows();
+    if(argc < 1){
+        std::cout << "usage: ./color_table <image_files>" << std::endl;
+    }
+    for(int i=1;i<argc;i++){
+        std::string fn = argv[i]; // image name
+        cv::Mat src = cv::imread(fn);
+        if(src.empty()){
+            std::cout << "failed open:"<< fn << std::endl;
+            continue;
+        }
+        std::stringstream sstr;
+        sstr << fn << "_out.png";
+        std::cout << sstr.str() <<std::endl;
+        cv::Mat labelimage;
+        make_labelimage(src,labelimage);
+        cv::Mat dst;
+        separate_labelimage(COLOR_WHITE,labelimage,dst);
+        cv::imwrite(sstr.str(),dst);
+    }
 }
 
 void make_labelimage(cv::Mat &src, cv::Mat &dst)
